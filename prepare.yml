@@ -1,0 +1,96 @@
+---
+
+# See https://docs.openshift.com/container-platform/3.9/install_config/install/host_preparation.html
+
+- name: Prepare hosts for an OpenShift 3.9 installation
+  hosts: OSEv3
+  become: yes
+  vars:
+    ocp_version: 3.9
+    docker_version: 1.13.1
+
+  tasks:
+  - name: Install the required software
+    yum:
+      name: '{{ item }}'
+      state: installed
+    with_items:
+    - wget
+    - git
+    - net-tools
+    - bind-utils
+    - iptables-services
+    - bridge-utils
+    - bash-completion
+    - kexec-tools
+    - sos
+    - psacct
+
+  - name: Install some optional software
+    yum:
+      name: '{{ item }}'
+      state: installed
+    with_items:
+    - vim-enhanced
+    - tmux
+    - unzip
+    - tcpdump
+    - telnet
+    - strace
+    - man-pages
+    - man
+    - iptraf
+    - wget
+    - openssh-clients
+    - httpd-tools
+    - net-tools
+    - nfs-utils
+    - yum-utils
+    tags: rpm
+
+  - name: Make sure the system is up-to-date
+    yum:
+      name: '*'
+      state: latest
+    tags: rpm
+
+  - name: First, disable any repos (using subscription-manager)
+    command: subscription-manager repos --disable="*"
+    tags: rpm
+
+  - name: Make sure mandatory repos are enabled
+    command: subscription-manager repos --enable {{ item }}
+    with_items:
+      - rhel-7-server-rpms
+      - rhel-7-server-extras-rpms
+      - rhel-7-server-ose-{{ ocp_version }}-rpms
+      - rhel-7-fast-datapath-rpms # see https://access.redhat.com/solutions/3008401
+      - rhel-7-server-ansible-2.4-rpms
+    tags: rpm
+
+  - name: Install Docker
+    yum:
+      name: 'docker-{{ docker_version }}'
+      state: installed
+    tags: rpm,docker
+
+  - name: Make sure overlayfs is enabled
+    lineinfile:
+      path: /etc/sysconfig/docker-storage
+      line: 'DOCKER_STORAGE_OPTIONS="--storage-driver overlay2"'
+      regexp: '^ *DOCKER_STORAGE_OPTIONS='
+      state: present
+    tags: docker
+
+  - name: Start Docker
+    service:
+      name: docker
+      state: started
+      enabled: yes
+    tags: docker
+
+  - name: Install atomic-openshift-utils
+    yum:
+      name: atomic-openshift-utils
+      state: installed
+    tags: rpm,openshift
