@@ -10,6 +10,26 @@
     docker_version: 1.13.1
 
   tasks:
+  - name: Make sure SELinux is enabled
+    lineinfile:
+      path: /etc/sysconfig/selinux
+      line: 'SELINUX=enforcing'
+      regexp: '^ *SELINUX='
+      state: present
+    register: selinux
+    tags: selinux
+
+  - name: Reboot if SELinux state has changed
+    command: '/sbin/shutdown -r now "reboot triggered by Ansible"'
+    when: selinux.changed
+    tags: selinux
+
+  - name: Waiting for server(s) to come back
+    fail:
+      msg: "Wait for the server(s) to reboot and re-run this playbook"
+    when: selinux.changed
+    tags: selinux
+
   - name: Install the required software
     yum:
       name: '{{ item }}'
@@ -46,7 +66,21 @@
     - net-tools
     - nfs-utils
     - yum-utils
+    - openldap-clients
     tags: rpm
+
+  - name: Install NetworkManager
+    yum:
+      name: NetworkManager
+      state: installed
+    tags: rpm,NetworkManager
+
+  - name: Make sure NetworkManager is enabled
+    service:
+      name: NetworkManager
+      state: started
+      enabled: yes
+    tags: rpm,NetworkManager
 
   - name: Make sure the system is up-to-date
     yum:
@@ -74,13 +108,28 @@
       state: installed
     tags: rpm,docker
 
+  - name: Stop Docker
+    service:
+      name: docker
+      state: stopped
+      enabled: yes
+    tags: docker
+
   - name: Make sure overlayfs is enabled
     lineinfile:
       path: /etc/sysconfig/docker-storage
       line: 'DOCKER_STORAGE_OPTIONS="--storage-driver overlay2"'
       regexp: '^ *DOCKER_STORAGE_OPTIONS='
       state: present
+    register: docker_storage
     tags: docker
+
+  - name: Cleanup the Docker local storage
+    file:
+      path: /var/lib/docker
+      state: absent
+    tags: docker
+    when: docker_storage.changed
 
   - name: Start Docker
     service:
