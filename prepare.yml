@@ -10,6 +10,27 @@
     docker_version: 1.13.1
 
   tasks:
+  - name: Check if /etc/kubernetes exists
+    stat:
+      path: /etc/kubernetes
+    register: etc_kubernetes
+    tags: checks
+
+  - name: Check if /etc/cni exists
+    stat:
+      path: /etc/cni
+    register: etc_cni
+    tags: checks
+
+  - name: Check if there is an old version of Kubernetes installed
+    assert:
+      that:
+      - "'KUBE_CONFIG' not in ansible_env"
+      - "not etc_kubernetes.stat.exists"
+      - "not etc_cni.stat.exists"
+      msg: An old installation of Kubernetes may have been found
+    tags: checks
+
   - name: Make sure SELinux is enabled
     lineinfile:
       path: /etc/sysconfig/selinux
