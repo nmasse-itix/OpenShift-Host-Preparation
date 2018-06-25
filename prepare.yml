@@ -41,6 +41,39 @@
     register: sysctl
     tags: network
 
+  - name: Uninstall things that might interfere with DNS
+    yum:
+      name: '{{ item }}'
+      state: absent
+    with_items:
+    - nscd
+    - bind
+    - bind-chroot
+    tags: rpm,dns
+
+  - name: Make sure iproute is installed (provides the "ss" command)
+    yum: 
+      name: iproute
+      state: installed
+    tags: rpm,dns
+
+  - name: Check who is listening on port 53
+    command: ss -tuplnH sport = :53
+    changed_when: false
+    register: ss
+    tags: dns
+  
+  - name: Make sure no one is listening on port 53
+    assert:
+      that:
+      - 'port_53_listeners|int == 0'
+      msg: >
+        You have something listening on port 53. This will collide with dnsmasq
+        that comes with OpenShift. Please inspect and fix this !
+    vars:
+      port_53_listeners: '{{ ss.stdout_lines|length }}'
+    tags: dns
+
   - name: Check that net.ipv4.ip_forward = 1
     assert:
       that:
