@@ -10,6 +10,49 @@
     docker_version: 1.13.1
 
   tasks:
+  - name: Set net.ipv4.ip_forward = 1
+    sysctl:
+      name: net.ipv4.ip_forward
+      value: 1
+      state: present
+      reload: yes
+    register: ip_forward
+    tags: network
+
+  - name: Reboot if the ip_forward state has changed
+    shell: 'sleep 5 && /sbin/shutdown -r now "reboot triggered by Ansible"'
+    async: 1
+    poll: 0
+    when: ip_forward.changed
+    tags: network
+
+  - name: Wait for the reboot to complete
+    wait_for_connection:
+      connect_timeout: 20
+      sleep: 5
+      delay: 5
+      timeout: 300
+    when: ip_forward.changed
+    tags: network
+
+  - name: Read the current value of net.ipv4.ip_forward
+    command: sysctl -n net.ipv4.ip_forward
+    changed_when: false
+    register: sysctl
+    tags: network
+
+  - name: Check that net.ipv4.ip_forward = 1
+    assert:
+      that:
+      - ip_forward_value == '1'
+      msg: |-
+        The sysctl variable 'net.ipv4.ip_forward' needs to be enabled. 
+        If you stumbled on this message, there is a high chance you have this setting hardcoded somewhere.
+        You will have to change it by yourself and re-run this playbook.'
+    vars:
+      ip_forward_value: '{{ sysctl.stdout_lines[0] }}'
+    tags: network
+
   - name: Check if /etc/kubernetes exists
     stat:
       path: /etc/kubernetes
