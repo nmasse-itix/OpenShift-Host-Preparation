@@ -108,6 +108,23 @@
       state: installed
     tags: rpm,docker
 
+  - name: Find the filesystem hosting /var/lib/docker
+    command: df -k /var/lib/docker
+    register: df
+    changed_when: false
+    tags: docker
+
+  - name: Make sure the filesystem hosting /var/lib/docker is formatted as XFS
+    assert:
+      that:
+      - 'docker_filesystem == ''xfs'''
+      msg: "The filesystem holding /var/lib/docker must be formatted as XFS"
+    vars:
+      docker_mount_point: '{{ df.stdout_lines[1].split()[5] }}'
+      # TODO: replace match with "equalto" as soon as the Jinja shipped with RHEL is updated
+      docker_filesystem: '{{ ansible_mounts|selectattr(''mount'', ''match'', ''^'' ~ docker_mount_point ~ ''$'')|map(attribute=''fstype'' )|first }}'
+    tags: docker
+      
   - name: Stop Docker
     service:
       name: docker
