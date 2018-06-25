@@ -78,7 +78,7 @@
     assert:
       that:
       - ip_forward_value == '1'
-      msg: |-
+      msg: >
         The sysctl variable 'net.ipv4.ip_forward' needs to be enabled. 
         If you stumbled on this message, there is a high chance you have this setting hardcoded somewhere.
         You will have to change it by yourself and re-run this playbook.'
