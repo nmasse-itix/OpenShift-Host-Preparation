@@ -84,13 +84,18 @@
     tags: selinux
 
   - name: Reboot if SELinux state has changed
-    command: '/sbin/shutdown -r now "reboot triggered by Ansible"'
+    shell: 'sleep 5 && /sbin/shutdown -r now "reboot triggered by Ansible"'
+    async: 1
+    poll: 0
     when: selinux.changed
     tags: selinux
 
   - name: Waiting for server(s) to come back
-    fail:
-      msg: "Wait for the server(s) to reboot and re-run this playbook"
+    wait_for_connection:
+      connect_timeout: 20
+      sleep: 5
+      delay: 5
+      timeout: 300
     when: selinux.changed
     tags: selinux
 
