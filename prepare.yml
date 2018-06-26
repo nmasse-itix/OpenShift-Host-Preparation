@@ -191,6 +191,22 @@
       state: latest
     tags: rpm
 
+  - name: Make sure the wildcard dns domain is defined in the inventory
+    assert:
+      that:
+      - openshift_master_default_subdomain is defined
+      msg: >
+        Please define the "openshift_master_default_subdomain" variable in your
+        inventory file!
+    tags: dns
+
+  - name: Check if the wildcard dns domain is working
+    command: 'host {{ sample_record }}'
+    vars:
+      sample_record: 'test-{{ ansible_date_time.epoch }}.{{ openshift_master_default_subdomain }}'
+    changed_when: false
+    tags: dns
+
   - name: First, disable any repos (using subscription-manager)
     command: subscription-manager repos --disable="*"
     tags: rpm
