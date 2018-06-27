@@ -185,6 +185,44 @@
       enabled: yes
     tags: rpm,NetworkManager
 
+  - name: Make sure NetworkManager is enabled for the default interface
+    block: 
+    - name: Enable NM_CONTROLLED
+      lineinfile:
+          path: /etc/sysconfig/network-scripts/ifcfg-{{ interface }}
+          regexp: '^\s*NM_CONTROLLED='
+          backup: yes
+          state: present
+          line: NM_CONTROLLED=yes
+      register: nm_controlled
+    - name: Enable PEERDNS
+      lineinfile:
+          path: /etc/sysconfig/network-scripts/ifcfg-{{ interface }}
+          regexp: '^\s*PEERDNS='
+          backup: yes
+          state: present
+          line: PEERDNS=yes
+      register: peer_dns
+    vars:
+      interface: '{{ ansible_default_ipv4.interface }}'
+    tags: NetworkManager
+
+  - name: Reload the network configuration
+    shell: 'sleep 5 && /etc/init.d/network restart'
+    async: 1
+    poll: 0
+    when: nm_controlled.changed or peer_dns.changed
+    tags: NetworkManager
+
+  - name: Waiting for the connection come back
+    wait_for_connection:
+      connect_timeout: 5
+      sleep: 5
+      delay: 10
+      timeout: 300
+    when: nm_controlled.changed or peer_dns.changed
+    tags: NetworkManager
+
   - name: Make sure the system is up-to-date
     yum:
       name: '*'
