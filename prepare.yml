@@ -41,6 +41,19 @@
     register: sysctl
     tags: network
 
+  - name: Check that net.ipv4.ip_forward = 1
+    assert:
+      that:
+      - ip_forward_value == '1'
+      msg: >
+        The sysctl variable 'net.ipv4.ip_forward' needs to be enabled.
+        If you stumbled on this message, there is a high chance you have this
+        setting hardcoded somewhere. You will have to change it by yourself
+        and re-run this playbook.
+    vars:
+      ip_forward_value: '{{ sysctl.stdout_lines[0] }}'
+    tags: network
+
   - name: Uninstall things that might interfere with DNS
     yum:
       name: '{{ item }}'
@@ -73,19 +86,6 @@
     vars:
       port_53_listeners: '{{ ss.stdout_lines|length }}'
     tags: dns
-
-  - name: Check that net.ipv4.ip_forward = 1
-    assert:
-      that:
-      - ip_forward_value == '1'
-      msg: >
-        The sysctl variable 'net.ipv4.ip_forward' needs to be enabled.
-        If you stumbled on this message, there is a high chance you have this
-        setting hardcoded somewhere. You will have to change it by yourself
-        and re-run this playbook.
-    vars:
-      ip_forward_value: '{{ sysctl.stdout_lines[0] }}'
-    tags: network
 
   - name: Check if /etc/kubernetes exists
     stat:
