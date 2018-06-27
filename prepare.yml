@@ -213,6 +213,10 @@
     changed_when: false
     tags: dns
   
+  - set_fact:
+      discovered_fqdn: '{{ hostname_f.stdout_lines[0] }}'
+    tags: dns
+
   - name: Make sure the hostnames are consistent
     assert:
       that:
@@ -222,8 +226,35 @@
         Your hostnames are not consistent ! Check your /etc/hosts, 
         /etc/sysconfig/hostname and the output of "hostnamectl status". 
     vars:
-      discovered_fqdn: '{{ hostname_f.stdout_lines[0] }}'
       discovered_hostname: '{{ ansible_hostname }}'
+    tags: dns
+
+  - name: Find the IP Address behind the hostname of this machine
+    command: getent ahosts '{{ discovered_fqdn }}'
+    register: getent_ahosts_cmd
+    changed_when: false
+    tags: dns
+
+  - block:
+    - name: Make sure the FQDN resolves to only one IP address
+      assert:
+        that:
+        - discovered_public_ips|length == 1
+        msg: >
+          I found that this machine fqdn ({{ inventory_hostname}}) resolves to 
+          {{ discovered_public_ips|length }} IPs and that could cause issues.
+          Please fix this !
+
+    - name: Make sure the FQDN resolves to the IP address of the network interface holding the default route
+      assert:
+        that:
+        - '"interface" in ansible_default_ipv4'
+        - ansible_default_ipv4.address == discovered_public_ips|first
+        msg: >
+          The IP behind this machine FQDN does not resolves to the network 
+          interface holding the default route.
+    vars:
+      discovered_public_ips: '{{ getent_ahosts_cmd.stdout_lines|select(''search'', ''\bSTREAM\b'')|map(''regex_replace'', ''^(\S+)\s+STREAM\b.*$'', ''\1'')|list }}'
     tags: dns
 
   - name: First, disable any repos (using subscription-manager)
