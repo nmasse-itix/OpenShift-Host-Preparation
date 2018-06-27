@@ -28,9 +28,9 @@
 
   - name: Wait for the reboot to complete
     wait_for_connection:
-      connect_timeout: 20
+      connect_timeout: 5
       sleep: 5
-      delay: 5
+      delay: 10
       timeout: 300
     when: ip_forward.changed
     tags: network
@@ -126,9 +126,9 @@
 
   - name: Waiting for server(s) to come back
     wait_for_connection:
-      connect_timeout: 20
+      connect_timeout: 5
       sleep: 5
-      delay: 5
+      delay: 10
       timeout: 300
     when: selinux.changed
     tags: selinux
