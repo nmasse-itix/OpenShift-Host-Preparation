@@ -207,6 +207,25 @@
     changed_when: false
     tags: dns
 
+  - name: Get the machine FQDN
+    command: hostname -f
+    register: hostname_f
+    changed_when: false
+    tags: dns
+  
+  - name: Make sure the hostnames are consistent
+    assert:
+      that:
+      - inventory_hostname_short == discovered_hostname
+      - inventory_hostname == discovered_fqdn
+      msg: >
+        Your hostnames are not consistent ! Check your /etc/hosts, 
+        /etc/sysconfig/hostname and the output of "hostnamectl status". 
+    vars:
+      discovered_fqdn: '{{ hostname_f.stdout_lines[0] }}'
+      discovered_hostname: '{{ ansible_hostname }}'
+    tags: dns
+
   - name: First, disable any repos (using subscription-manager)
     command: subscription-manager repos --disable="*"
     tags: rpm
