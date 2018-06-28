@@ -42,6 +42,8 @@ ansible-playbook -i /etc/ansible/hosts prepare.yml
 
 ## What does this playbook
 
+This playbook goes through the following steps:
+
 - Make sure `net.ipv4.ip_forward` is set to `1`
 - Remove any locally installed DNS server that might interfere with OpenShift
 - Make sure nothing is listening on port 53
@@ -56,3 +58,6 @@ ansible-playbook -i /etc/ansible/hosts prepare.yml
 - Configure Docker for OverlayFS
 - Make sure the filesystem holding `/var/lib/docker` is formatted as XFS
 - Install the `atomic-openshift-utils` package
+
+Note: several steps require a reboot to apply the new configuration or detect
+any misconfiguration, be prepared!
