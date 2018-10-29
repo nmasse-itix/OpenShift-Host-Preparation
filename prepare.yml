@@ -361,8 +361,8 @@
       enabled: yes
     tags: docker
 
-  - name: Install atomic-openshift-utils
+  - name: Install openshift-ansible
     yum:
-      name: atomic-openshift-utils
+      name: openshift-ansible
       state: installed
     tags: rpm,openshift
