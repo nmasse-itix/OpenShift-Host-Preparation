@@ -57,7 +57,7 @@ This playbook goes through the following steps:
 - Install Docker
 - Configure Docker for OverlayFS
 - Make sure the filesystem holding `/var/lib/docker` is formatted as XFS
-- Install the `atomic-openshift-utils` package
+- Install the `openshift-ansible` package
 
 Note: several steps require a reboot to apply the new configuration or detect
 any misconfiguration, be prepared!
