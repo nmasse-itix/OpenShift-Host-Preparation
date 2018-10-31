@@ -203,6 +203,27 @@
           state: present
           line: PEERDNS=yes
       register: peer_dns
+    - name: Check if BOOTPROTO is set
+      shell: source /etc/sysconfig/network-scripts/ifcfg-{{ interface }} && echo -n $BOOTPROTO
+      register: bootproto
+      changed_when: false
+    - name: Check if DNS1 is set
+      shell: source /etc/sysconfig/network-scripts/ifcfg-{{ interface }} && echo -n $DNS1
+      register: dns1
+      changed_when: false
+    - name: Check that DNS are set in ifcfg-eth* when IP is static
+      assert:
+        that:
+        - (ip_is_static and dns_is_set) or not ip_is_static
+        msg: >
+          Your default network interface ({{ interface }}) is set with a
+          static IP and has no DNS set in ifcfg-{{ interface }}.
+          Set DNS1= and DNS2= in
+          /etc/sysconfig/network-scripts/ifcfg-{{ interface }} and reload
+          your network configuration with /etc/init.d/network restart
+      vars:
+        ip_is_static: '{{ bootproto.stdout == "none" }}'
+        dns_is_set: '{{ dns1.stdout|length > 0 }}'
     vars:
       interface: '{{ ansible_default_ipv4.interface }}'
     tags: NetworkManager
